@@ -24,11 +24,11 @@ long lastCountRight = 0;
 long lastCountLeft = 0;
 int deltaRight, deltaLeft;
 
-// Constantes del controlador
+// Controler constants
 double KpL = 4.48896448205661, KiL = 10.5072974958874, KdL = 0.130930013043834;
 double KpR = 1.50311341005131, KiR = 5.79952212201727, KdR = 0.0499774666446061;
 
-// variables internas del controlador
+// Initialize variables with initial value
 unsigned long currentTime  = 0;
 unsigned long previousTime = 0;
 double elapsedTime = 0.0;
@@ -41,11 +41,12 @@ double cumError_L = 0.0;
 double rateError_L = 0.0;
 double rateError_R = 0.0;
 double Outputs[2];
+int rpmRef = 50;
 
 
 void setup (){
   Serial.begin(9600);
-  // Declaramos todos los pines como salidas
+  // Set all pin as output
   pinMode (ENA, OUTPUT);
   pinMode (ENB, OUTPUT);
   pinMode (IN1, OUTPUT);
@@ -97,54 +98,56 @@ void sendPower_Right(int power) {
 }
 
 void Stop () {
-  //Direccion motor A
+
   digitalWrite (IN1, LOW);
   digitalWrite (IN2, LOW);
-  analogWrite (ENA, 0); //Velocidad motor A
-  // //Direccion motor B
+  analogWrite (ENA, 0); 
   digitalWrite (IN3, LOW);
   digitalWrite (IN4, LOW);
-  analogWrite (ENB, 0); //Velocidad motor A
+  analogWrite (ENB, 0); 
 }
 
 void PID(int ref, float R, float L) {
   currentTime = millis();
   elapsedTime = ((double)(currentTime - previousTime)) / (1000);
-
+  // Calculate current error
   error_R = ref - R;
   error_L = ref - L;
-
+  // Cumulative error for integral discretation
   cumError_R += error_R * elapsedTime;
   cumError_L += error_L * elapsedTime;
-
+  // Slope of error 
   rateError_R = (error_R - lastError_R) / elapsedTime;
   rateError_L = (error_L - lastError_L) / elapsedTime;
-
-  double outputL = (KpL * error_L + KiL * cumError_L + KdL * rateError_L); // This controls pressure
-  double outputR = (KpR * error_R + KiR * cumError_R + KdR * rateError_R); // This controls pressure
-
+  // Evaluate PID formula
+  double outputL = (KpL * error_L + KiL * cumError_L + KdL * rateError_L); // This controls velocity
+  double outputR = (KpR * error_R + KiR * cumError_R + KdR * rateError_R); // This controls velocity
   Serial.println("Error Left " + String(error_L));
   Serial.println("Error Right " + String(error_R));
-
+  // Assign lef and right output value
   Outputs[0] = outputL;
   Outputs[1] = outputR;
-
+  // Refresh last error for each side
   lastError_R = error_R;
   lastError_L = error_L;
   previousTime = currentTime;
 }
 
 void loop () {
-  int rpmRef = 69; // Puede tener un rango de 
+  if(Serial.available() && Serial.read()!= rpmRef){
+    int rpmRef = Serial.read(); // Can be withing the range of 50-80 RPM
+  }
+  //Read encoder ticks and calculate RPM
   deltaRight = (int)encoder.getCount() - lastCountRight;
   deltaLeft = (int)encoder2.getCount() - lastCountLeft;
   lastCountRight = (int)encoder.getCount();
   lastCountLeft = (int)encoder2.getCount();
   float rpmRight = (float)(deltaRight * 600) / ticksPerRev;
   float rpmLeft = (float)(deltaLeft * 600) / ticksPerRev;
+  // Call PID control function and determine outputs
   PID(rpmRef, rpmRight, rpmLeft);
   sendPower_Left((int)Outputs[0]);
   sendPower_Right((int)Outputs[1]);
-  Serial.println("RPM right = " + String(rpmRight) + " RPM left = " + String(rpmLeft));
+  Serial.println("Ref"+String(rpmRef)+"RPM right = " + String(rpmRight) + " RPM left = " + String(rpmLeft));
   delay(100);
 }
