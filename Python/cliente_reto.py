@@ -7,8 +7,6 @@ import threading
 
 
 def tkLoop():
-    #UDP_IP = '192.168.1.100'
-    #UDP_SEND_PORT = 4321
     UDP_IP = '192.168.43.125'
     UDP_SEND_PORT = 6666
     root = tk.Tk()
