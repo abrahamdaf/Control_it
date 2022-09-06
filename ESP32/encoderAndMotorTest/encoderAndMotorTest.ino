@@ -143,7 +143,7 @@ void loop (){
     float rpmLeft = (float)(deltaLeft*60)/ticksPerRev;
     sendPower_A(i);
     sendPower_B(i);
-    Serial.println("RPM right = " + String(rpmRight) + " RPM left = " + String(rpmLeft) + " Duty Cycle = " + String(i));
+    Serial.print(String(rpmLeft) + ",");
     delay(1000);
     
   }

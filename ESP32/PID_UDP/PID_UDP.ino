@@ -1,7 +1,15 @@
-#include "WiFi.h"
+#include <WiFi.h>
+#include <WifiUdp.h>
 #include "AsyncUDP.h"
 #include <analogWrite.h>
 #include <ESP32Encoder.h>
+#include "config.h"  // Sustituir con datos de vuestra red
+#include "UDP.hpp"
+#include "ESP32_Utils.hpp"
+#include "ESP32_Utils_UDP.hpp"
+
+
+
 #define  IN3 33
 #define  IN4 32
 #define  ENA 27
@@ -44,9 +52,6 @@ double rateError_R = 0.0;
 double Outputs[2];
 int rpmRef = 50;
 
-const char * ssid = "abradeal";
-const char * password = "control_it";
-
 
 AsyncUDP udp;
 
@@ -60,6 +65,7 @@ void setup(){
             delay(1000);
         }
     }
+    
     if(udp.connect(IPAddress(192,168,1,100), 1234)) {
         Serial.println("UDP connected");
     }
@@ -96,6 +102,9 @@ void setup(){
   delay(1000);
   Outputs[0] = 50;
   Outputs[1] = 50;
+  
+  ConnectWiFi_STA();
+  ConnectUDP();
 }
 
 long positionLeft  = -999;
@@ -140,8 +149,8 @@ void PID(int ref, float R, float L) {
   // Evaluate PID formula
   double outputL = (KpL * error_L + KiL * cumError_L + KdL * rateError_L); // This controls velocity
   double outputR = (KpR * error_R + KiR * cumError_R + KdR * rateError_R); // This controls velocity
-  Serial.println("Error Left " + String(error_L));
-  Serial.println("Error Right " + String(error_R));
+  //Serial.println("Error Left " + String(error_L));
+  //Serial.println("Error Right " + String(error_R));
   // Assign lef and right output value
   Outputs[0] = outputL;
   Outputs[1] = outputR;
@@ -152,6 +161,13 @@ void PID(int ref, float R, float L) {
 }
 
 void loop(){
+  int nextRef = GetUDP_Packet();
+  if (nextRef >= 50 && nextRef <=100 && nextRef != rpmRef){
+    rpmRef = nextRef;
+  }
+
+  Serial.println("Referencia= " + String(rpmRef));
+  
    //Read encoder ticks and calculate RPM
   deltaRight = (int)encoder.getCount() - lastCountRight;
   deltaLeft = (int)encoder2.getCount() - lastCountLeft;
@@ -163,7 +179,13 @@ void loop(){
   PID(rpmRef, rpmRight, rpmLeft);
   sendPower_Left((int)Outputs[0]);
   sendPower_Right((int)Outputs[1]);
-  udp.broadcastTo("Right RPM"+String(rpmRight), 1234);
-  udp.broadcastTo("Right Left"+String(rpmLeft), 1234);
+  String rpmR = "Right RPM"+String(rpmRight);
+  String rpmL = "Left RPM"+String(rpmLeft);
+  char strR[rpmR.length()]; 
+  char strL[rpmL.length()]; 
+  rpmR.toCharArray(strR, rpmR.length());
+  rpmL.toCharArray(strL, rpmL.length());
+  udp.broadcastTo(strR, 1234);
+  udp.broadcastTo(strL, 1234);
   delay(100);
 }

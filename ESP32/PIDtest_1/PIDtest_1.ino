@@ -122,8 +122,7 @@ void PID(int ref, float R, float L) {
   // Evaluate PID formula
   double outputL = (KpL * error_L + KiL * cumError_L + KdL * rateError_L); // This controls velocity
   double outputR = (KpR * error_R + KiR * cumError_R + KdR * rateError_R); // This controls velocity
-  Serial.println("Error Left " + String(error_L));
-  Serial.println("Error Right " + String(error_R));
+  Serial.println("Error Left " + String(error_L) + " Error Right " + String(error_R));
   // Assign lef and right output value
   Outputs[0] = outputL;
   Outputs[1] = outputR;
