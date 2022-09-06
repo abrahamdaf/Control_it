@@ -34,8 +34,8 @@ long lastCountLeft = 0;
 int deltaRight, deltaLeft;
 
 // Controler constants
-double KpL = 4.48896448205661, KiL = 10.5072974958874, KdL = 0.130930013043834;
-double KpR = 1.50311341005131, KiR = 5.79952212201727, KdR = 0.0499774666446061;
+double KpL = 2.13065609173635, KiL = 10.40549515958, KdL = 0.0457839665584179;
+double KpR = 2.38683337097496, KiR = 13.8752547814679, KdR = 0.0391340859026503;
 
 // Initialize variables with initial value
 unsigned long currentTime  = 0;
@@ -50,7 +50,7 @@ double cumError_L = 0.0;
 double rateError_L = 0.0;
 double rateError_R = 0.0;
 double Outputs[2];
-int rpmRef = 50;
+int rpmRef = 65;
 
 
 AsyncUDP udp;
@@ -112,16 +112,28 @@ long positionRight = -999;
 
 void sendPower_Left(int power) {
   //Direccion motor A
-  digitalWrite (IN1, LOW);
-  digitalWrite (IN2, HIGH);
-  analogWrite (ENA, power);
+  if(power > 0){
+    digitalWrite (IN1, LOW);
+    digitalWrite (IN2, HIGH);
+    analogWrite (ENA, power);
+  }else if(power<0){
+    digitalWrite (IN2, LOW);
+    digitalWrite (IN1, HIGH);
+    analogWrite (ENA, power);
+  }
 }
 
 void sendPower_Right(int power) {
   // //Direccion motor B
-  digitalWrite (IN3, LOW);
-  digitalWrite (IN4, HIGH);
-  analogWrite (ENB, power);
+  if(power > 0){
+    digitalWrite (IN3, LOW);
+    digitalWrite (IN4, HIGH);
+    analogWrite (ENB, power);
+  } else if(power > 0){
+    digitalWrite (IN4, LOW);
+    digitalWrite (IN3, HIGH);
+    analogWrite (ENB, power);
+  }
 }
 
 void Stop () {
@@ -159,10 +171,10 @@ void PID(int ref, float R, float L) {
   lastError_L = error_L;
   previousTime = currentTime;
 }
-
+int sendCounter = 0;
 void loop(){
   int nextRef = GetUDP_Packet();
-  if (nextRef >= 50 && nextRef <=100 && nextRef != rpmRef){
+  if (nextRef >= 65 && nextRef <=95 && nextRef != rpmRef){
     rpmRef = nextRef;
   }
 
@@ -185,7 +197,12 @@ void loop(){
   char strL[rpmL.length()]; 
   rpmR.toCharArray(strR, rpmR.length());
   rpmL.toCharArray(strL, rpmL.length());
-  udp.broadcastTo(strR, 1234);
-  udp.broadcastTo(strL, 1234);
+  sendCounter ++;
+  if (sendCounter >= 5){
+    udp.broadcastTo(strR, 1234);
+    udp.broadcastTo(strL, 1234);
+    sendCounter = 0;
+  }
   delay(100);
+  
 }

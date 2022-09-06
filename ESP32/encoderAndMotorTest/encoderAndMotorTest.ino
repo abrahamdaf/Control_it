@@ -134,7 +134,7 @@ void Parar (){
 
 void loop (){
   //int rpmRef = 20;
-  for(int i = 0; i < 256;i+=8){
+  for(int i = 40; i < 256;i+=5){
     deltaRight = (int)encoder.getCount() - lastCountRight;
     deltaLeft = (int)encoder2.getCount() - lastCountLeft;
     lastCountRight = (int)encoder.getCount();
@@ -143,8 +143,7 @@ void loop (){
     float rpmLeft = (float)(deltaLeft*60)/ticksPerRev;
     sendPower_A(i);
     sendPower_B(i);
-    Serial.print(String(rpmLeft) + ",");
-    delay(1000);
-    
+    Serial.println(String(i) + "," + String(rpmLeft) + "," + String(rpmRight) + ";");
+    delay(1000); 
   }
 }
